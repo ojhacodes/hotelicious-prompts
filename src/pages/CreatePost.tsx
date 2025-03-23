@@ -5,6 +5,7 @@ import { Layout } from '@/components/Layout';
 import { PostForm, PostFormData } from '@/components/PostForm';
 import { generatePostContent, checkOpenAIConnection } from '@/utils/openai';
 import { toast } from 'sonner';
+import { Sparkles } from 'lucide-react';
 
 const CreatePost: React.FC = () => {
   const navigate = useNavigate();
@@ -68,6 +69,18 @@ const CreatePost: React.FC = () => {
             ⚠️ OpenAI API connection issue detected. The app will use fallback content generation.
           </div>
         )}
+        
+        <div className="mb-8 text-center">
+          <div className="inline-block bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 p-1 rounded-full animate-pulse">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="mt-4 text-4xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+            Create Amazing Posts
+          </h1>
+          <p className="mt-2 text-muted-foreground max-w-xl mx-auto">
+            Generate beautiful social media content for your hotel with AI assistance
+          </p>
+        </div>
         
         <PostForm onSubmit={handleSubmit} />
       </div>
