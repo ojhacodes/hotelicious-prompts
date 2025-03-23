@@ -13,8 +13,9 @@ export interface GenerationResponse {
   caption: string;
 }
 
-// This is a placeholder function that simulates API calls
-// In a real implementation, this would call the OpenAI API
+// OpenAI API key
+const OPENAI_API_KEY = "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";
+
 export const generatePostContent = async (
   params: GenerationRequest
 ): Promise<GenerationResponse> => {
@@ -22,10 +23,7 @@ export const generatePostContent = async (
   const loadingToast = toast.loading("Generating your post...");
   
   try {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Sample images for different events
+    // Sample images for different events (as fallback)
     const sampleImages: Record<string, string> = {
       default: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?q=80&w=2059&auto=format&fit=crop",
       diwali: "https://images.unsplash.com/photo-1604823751393-be9c2ac85ed1?q=80&w=1974&auto=format&fit=crop",
@@ -35,7 +33,7 @@ export const generatePostContent = async (
       holi: "https://images.unsplash.com/photo-1617858823-e9ad7e5a2b60?q=80&w=1976&auto=format&fit=crop",
     };
     
-    // Find a matching image or use default
+    // Find a matching image (fallback in case API fails)
     const event = params.event.toLowerCase();
     let imageUrl = sampleImages.default;
     
@@ -46,36 +44,45 @@ export const generatePostContent = async (
       }
     }
     
-    // Generate a caption based on the event and tone
-    let caption = "";
+    // Create the prompt for OpenAI
+    const prompt = `Create a social media caption for a hotel named "${params.hotelName}" for the occasion of "${params.event}". 
+    The tone should be "${params.tone}". 
+    ${params.customPrompt ? `Additional context: ${params.customPrompt}` : ''}
+    Include relevant hashtags at the end of the caption.
+    Keep the caption professional, engaging and under 150 words.`;
     
-    switch (params.tone) {
-      case "professional":
-        caption = `${params.hotelName} wishes you a wonderful ${params.event}. Join us for special celebrations and create memories that last a lifetime.`;
-        break;
-      case "friendly":
-        caption = `Happy ${params.event} from all of us at ${params.hotelName}! Come celebrate with us and enjoy our special offerings!`;
-        break;
-      case "luxurious":
-        caption = `Experience the grand celebration of ${params.event} at ${params.hotelName}. Indulge in luxury and make this occasion truly exceptional.`;
-        break;
-      case "celebratory":
-        caption = `It's time to celebrate ${params.event} at ${params.hotelName}! Join us for an unforgettable experience filled with joy and festivities.`;
-        break;
-      case "informative":
-        caption = `${params.hotelName} brings you special ${params.event} packages. Book now to avail exclusive offers and make your celebration memorable.`;
-        break;
-      default:
-        caption = `Celebrate ${params.event} with ${params.hotelName}. We look forward to making your experience special.`;
+    // Call OpenAI API
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are a professional social media marketer specialized in creating engaging captions for hotels' social media posts."
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 300
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || "Unknown error"}`);
     }
     
-    // Add custom prompt details if provided
-    if (params.customPrompt) {
-      caption += ` ${params.customPrompt}`;
-    }
-    
-    // Add hashtags
-    caption += `\n\n#${params.event.replace(/\s+/g, '')} #${params.hotelName.replace(/\s+/g, '')} #Celebration`;
+    const data = await response.json();
+    const caption = data.choices[0]?.message?.content || "";
     
     // Dismiss the loading toast
     toast.dismiss(loadingToast);
