@@ -16,6 +16,31 @@ export interface GenerationResponse {
 // OpenAI API key
 const OPENAI_API_KEY = "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";
 
+export const checkOpenAIConnection = async (): Promise<boolean> => {
+  try {
+    // Make a simple test request to OpenAI
+    const response = await fetch("https://api.openai.com/v1/models", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+      }
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("OpenAI API connection test failed:", errorData);
+      return false;
+    }
+    
+    const data = await response.json();
+    console.log("OpenAI API connection successful. Available models:", data.data.length);
+    return true;
+  } catch (error) {
+    console.error("Error testing OpenAI connection:", error);
+    return false;
+  }
+};
+
 export const generatePostContent = async (
   params: GenerationRequest
 ): Promise<GenerationResponse> => {
@@ -23,6 +48,13 @@ export const generatePostContent = async (
   const loadingToast = toast.loading("Generating your post...");
   
   try {
+    // Test API connection first
+    const isConnected = await checkOpenAIConnection();
+    if (!isConnected) {
+      console.warn("OpenAI connection test failed. Will use fallback content.");
+      throw new Error("OpenAI API connection failed");
+    }
+    
     // Sample images for different events (as fallback)
     const sampleImages: Record<string, string> = {
       default: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?q=80&w=2059&auto=format&fit=crop",
